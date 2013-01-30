@@ -54,6 +54,7 @@ void loop(){
     if (inputString == "switchAC") switchAC();
     if (inputString == "switchDC") switchDC();
     if (inputString == "switchDCamp") switchDCamp();
+    if (inputString == "reset") reset();
     if (inputString == "config?") config_status();
     inputString = "";
     stringComplete = false;
@@ -90,6 +91,11 @@ void switchDCamp(){
   PORTB &= B11111110; // disable DC mode (8)
   PORTD |= B10000000; // enable DC amp mode (7 & 12)
   PORTB |= B00010000;
+}
+
+void reset(){
+  PORTD &= B00000011; // disable AC mode (2 & 4)
+  PORTB &= B00000000; // disable DC mode (8)
 }
 
 void config_status(){
