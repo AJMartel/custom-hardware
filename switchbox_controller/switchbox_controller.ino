@@ -56,11 +56,11 @@ void loop(){
     if (inputString == "switchDCamp") switchDCamp();
     if (inputString == "reset") reset();
     if (inputString == "config?") config_status();
-    if (inputString == "switchACin") switchACin();
-    if (inputString == "switchACout") switchACout();
-    if (inputString == "switchDCin") switchDCin();
-    if (inputString == "switchDCout") switchDCout();
-    if (inputString == "switchDCamp") switchDCamp();
+    if (inputString == "enableACin") enableACin();
+    if (inputString == "enableACout") enableACout();
+    if (inputString == "enableDCin") enableDCin();
+    if (inputString == "enableDCout") enableDCout();
+    if (inputString == "enableDCamp") enableDCamp();
     inputString = "";
     stringComplete = false;
   }
@@ -103,24 +103,24 @@ void reset(){
   PORTB &= B00000000; // disable DC mode (8)
 }
 
-void switchACin(){  
+void enableACin(){  
   PORTD |= B00000100; // enable ACin (2)
 }
 
-void switchACout(){  
+void enableACout(){  
   PORTD |= B00010000; // enable ACout (4)
 }
 
-void switchDCin(){  
+void enableDCin(){  
   PORTD |= B10000000; // enable DCin (7)
 }
 
-void switchDCout(){
+void enableDCout(){
   PORTB &= B11101111; // disable DCamp (12)
   PORTB |= B00000001; // enable DCout (8)
 }
 
-void switchDCamp(){ 
+void enableDCamp(){ 
   PORTB &= B11111110; // disbale DCout (8)
   PORTB |= B00010000; // enable DCamp (12)
 }
