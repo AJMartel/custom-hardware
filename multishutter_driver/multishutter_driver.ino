@@ -25,7 +25,7 @@ const int motorB_dir_bit = 5;
 
 int shtrA, shtrB;
 float current;
-float V_supply = 5.0;
+float V_supply = 15.0;
 int V_hold = (1.0/V_supply)*255;
 String inputString = "";
 boolean stringComplete = false;
