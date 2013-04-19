@@ -48,9 +48,10 @@ void setup(){
 void loop(){
   /* Serial Commands and Communications */
   if (stringComplete) {
+    if (inputString == "id?") {
+      Serial.println("switchbox controller");}
     if (inputString == "test") {
-      Serial.println("Test Sequence Enabled");
-    }
+      Serial.println("Test Sequence Enabled");}
     if (inputString == "switchAC") switchAC();
     if (inputString == "switchDC") switchDC();
     if (inputString == "switchDCa") switchDCa();
