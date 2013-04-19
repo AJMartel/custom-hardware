@@ -52,13 +52,11 @@ void setup(){
 void loop(){
   /* Serial Commands and Communications */
   if (stringComplete) {
-    if (inputString == "test") {
-      Serial.println("Test Sequence Enabled");
-    }
-    if (inputString == "open") openShtr();
-    if (inputString == "close") closeShtr();
-    if (inputString == "flip") flipShtr();
-    if (inputString == "trig") trigSeq();
+    if (inputString == "test") Serial.println("Test Sequence Enabled");
+    else if (inputString == "open") openShtr();
+    else if (inputString == "close") closeShtr();
+    else if (inputString == "flip") flipShtr();
+    else if (inputString == "trig") trigSeq();
     inputString = "";
     stringComplete = false;
   }
