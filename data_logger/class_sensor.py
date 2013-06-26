@@ -5,14 +5,25 @@ Arduino temperature and humidity sensor.
 
 import os
 import sys
+import socket
+
 import time
 import datetime
 import serial
 import numpy as np
 
 # dictionary of all current sensors and ports #
+host_name = socket.gethostname()
 comms = {}
-comms['arduino'] = 4-1
+if host_name == "Alan-VAIO":
+    data_dir = 'C:\\users\\alan\\desktop'
+    comms['arduino'] = 'COM4'
+elif host_name == "NP-ASTATINE":
+    data_dir = 'C:\\users\\alan\\desktop'
+    comms['arduino'] = 'COM7'
+else:
+    data_dir = ''
+    comms["arduino"] = 'dev\ttylACM0'
 
 class sensor:
     '''Sensor class for recording timestamp, temperature and humidity.'''
@@ -109,7 +120,7 @@ class sensor:
         ser.read()
         # load data arrays or create if necessary #
         try:
-            npz_archive = np.load('c:\\users\\alan\\desktop\\sensor1.npz')
+            npz_archive = np.load(os.path.join(data_dir, self.id+'.npz'))
             self.timestamp = npz_archive['t']
             self.temperature = npz_archive['temp']
             self.humidity = npz_archive['hum']
@@ -120,7 +131,7 @@ class sensor:
     
     def stop_monitoring(self):
         self.close_comms()
-        np.savez('c:\\users\\alan\\desktop\\sensor1',
+        np.savez(os.path.join(data_dir, self.id),
                  t = self.timestamp, temp = self.temperature, hum = self.humidity)
         return 0
     
@@ -128,6 +139,8 @@ class sensor:
         # read serial data #
         line = ''
         ser = self.ser
+        if not ser.inWaiting():
+            return 0
         while ser.inWaiting() or not line.endswith('\n'):
             line += ser.read(ser.inWaiting())
             # resync request #
@@ -151,13 +164,16 @@ class sensor:
             self.timestamp = np.append(self.timestamp, t)
             self.temperature = np.append(self.temperature, temp)
             self.humidity = np.append(self.humidity, hum)
-        return 0
+        np.savez(os.path.join(data_dir, self.id),
+                 t = self.timestamp, temp = self.temperature, hum = self.humidity)
+        return 1
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     
     period = 1
     sensor1 = sensor('arduino')
+    print sensor1.id
     sensor1.start_monitoring(period)
 
     t0 = time.time()
