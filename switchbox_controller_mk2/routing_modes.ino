@@ -1,7 +1,8 @@
 void clk_through(){
   digitalWrite(clk, LOW);      // toggle clk low
-  delay(10);                         // for 10 ms and then
+  delay(20);                         // for 10 ms and then
   digitalWrite(clk, HIGH);     // revert to high
+  delay(20);
 }
 
 void switch_AC(){
@@ -15,6 +16,7 @@ void switch_AC(){
   digitalWrite(ACout, HIGH);
   clk_through();  // change relay configuration
   power_down();   // power down
+  Serial.println("switched to a.c. circuit");
 }
 
 void switch_DC(){
@@ -28,6 +30,7 @@ void switch_DC(){
   digitalWrite(DCout, HIGH);
   clk_through();  // change relay configuration
   power_down();   // power down
+  Serial.println("switched to d.c. circuit");
 }
 
 void switch_DC_amp(){
@@ -41,4 +44,5 @@ void switch_DC_amp(){
   digitalWrite(DCamp, HIGH);
   clk_through();  // change relay configuration
   power_down();   // power down
+  Serial.println("switched to d.c. amp circuit");
 }
