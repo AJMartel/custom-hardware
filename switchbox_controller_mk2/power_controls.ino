@@ -3,7 +3,7 @@ void power_up(){
   PORTD |= B11111100;
   PORTB |= B00000011;
   digitalWrite(power_clk, LOW);      // toggle power_clk low
-  delay(10);                         // for 10 ms and then
+  delay(20);                         // for 10 ms and then
   digitalWrite(power_clk, HIGH);     // revert to high
 }
 
@@ -12,8 +12,8 @@ void power_down(){
   PORTD |= B11111100;
   PORTB |= B00000011;
   digitalWrite(power, LOW);          // pull power low
-  delay(10);                         // wait 10 ms
+  delay(20);                         // wait 10 ms
   digitalWrite(power_clk, LOW);      // toggle power_clk low
-  delay(10);                         // for 10 ms and then
+  delay(20);                         // for 10 ms and then
   digitalWrite(power_clk, HIGH);     // revert to high
 }
