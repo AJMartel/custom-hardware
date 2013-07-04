@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib import rc
 from class_sensor import *
 import numpy as np
+import time
 import datetime
 
 class dataLogWindow(wx.Frame):
@@ -75,8 +76,8 @@ class controlPanel(wx.Panel):
         wx.Panel.__init__(self, parent)
         
         # create time view controls #
-        parent.dataView.deltaDays = 1
-        self.setDays = wx.TextCtrl(self, value="1", pos=(5,5), size=(100,20))
+        parent.dataView.deltaDays = 7
+        self.setDays = wx.TextCtrl(self, value="7", pos=(5,5), size=(100,20))
         self.Bind(wx.EVT_TEXT, self.getParams, self.setDays)
         self.setButton = wx.Button(self, label="Manual Time", pos=(5,30), size=(120,25))
         self.setButton.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False))
@@ -86,8 +87,8 @@ class controlPanel(wx.Panel):
         self.autoButton.Bind(wx.EVT_BUTTON, self.autoParams)
     
         # create check controls #
-        self.checkPeriod = 60
-        self.setCheckPeriod = wx.TextCtrl(self, value="60", pos=(5,90), size=(100,20))
+        self.checkPeriod = 5
+        self.setCheckPeriod = wx.TextCtrl(self, value="5", pos=(5,90), size=(100,20))
         self.Bind(wx.EVT_TEXT, self.getCheckPeriod, self.setCheckPeriod)
         self.setCheckPeriodButton = wx.Button(self, label="Set Check Period", pos=(5,115), size=(120,25))
         self.setCheckPeriodButton.SetFont(wx.Font(10, wx.DEFAULT, wx.NORMAL, wx.NORMAL, False))
@@ -180,8 +181,6 @@ class controlPanel(wx.Panel):
                 sensors.remove(sensor)
                 parent.logger.AppendText("Panel destroyed\n")
         
-        
-
 class dataGraph(wx.Panel):
     # Create plot area and axes
     def __init__(self, parent):
@@ -217,28 +216,16 @@ class dataGraph(wx.Panel):
         self.canvas.SetSize((640,320))
         self.ax = self.fig.add_axes([0.08,0.17,0.83,0.8]) # left, bottom, right, top
         self.rax = self.ax.twinx()
-        
-        # default values #
-        self.useAuto = True
-        self.x_min = 0
-        self.x_max = 1
-        self.y_min = 0
-        self.y_max = 1
-        self.y2_min = 0
-        self.y2_max = 1
-        
+        self.useAuto = True        
         self.setup_axes()
     
     def setup_axes(self):
+        self.ax.autoscale(True)
         self.formatter = plt.ScalarFormatter(useOffset=False, useMathText=True)
         self.ax.yaxis.set_major_formatter(self.formatter)
         self.rax.yaxis.set_major_formatter(self.formatter)
         self.ax.minorticks_on()
         self.rax.minorticks_on()
-        if not self.useAuto:
-            self.ax.set_xlim([self.x_min, self.x_max])
-            self.ax.set_ylim([self.y_min, self.y_max])
-            self.rax.set_ylim([self.y2_min, self.y2_max])
         self.ax.set_xlabel("Time")
         self.ax.set_ylabel("Temperature ($^\circ$C)")
         self.rax.set_ylabel("Humidity (% RH)")
@@ -246,28 +233,22 @@ class dataGraph(wx.Panel):
         for label in labels:
             label.set_rotation(30)
           
-
 class sensorPanel(wx.Panel):
     '''Sensor panels for control of data logger sensors.'''
     # create panel of controls for sensor #
     def __init__(self, parent, sensor_id):
         wx.Panel.__init__(self, parent)
         self.sensor = sensor(sensor_id)
-        
         self.isLogging = False
         self.timer = wx.Timer(self)
         self.Bind(wx.EVT_TIMER, self.update, self.timer)
-        
-        self.line, = parent.dataView.ax.plot(self.sensor.timestamp, self.sensor.temperature, 'k-')
-        
         self.quote = wx.StaticText(self, label=self.sensor.id, pos=(5,5))
         
         # timer period (ms) #
-        self.timerPeriod = 5000
-        
+        self.timerPeriod = 1000
         # create set period control #
-        self.period = 5
-        self.periodStr = "5"
+        self.period = 1
+        self.periodStr = "1"
         self.setPeriod = wx.TextCtrl(self, value=self.periodStr, pos=(5,25), size=(100,20))
         self.Bind(wx.EVT_TEXT, self.updatePeriod, self.setPeriod)
         
@@ -302,34 +283,24 @@ class sensorPanel(wx.Panel):
         fig = self.GetParent().dataView
         logger = self.GetParent().logger
         if self.sensor.log_data():
-            self.line.set_data(self.sensor.timestamp, self.sensor.temperature)
-            self.line.axes.figure.canvas.draw()
-            # Update plot
+            # get latest data in required range #
+            if fig.useAuto:
+                # default to weekly view #
+                dt = datetime.timedelta(days = 7).total_seconds()
+                self.sensor.load_data(time.time()-dt,time.time())
+            elif not fig.useAuto:
+                dt = datetime.timedelta(days = fig.deltaDays).total_seconds()
+                self.sensor.load_data(time.time()-dt,time.time())
+            # update plot #
             fig.ax.clear()
+            fig.rax.clear()
             fig.ax.plot(self.sensor.timestamp, self.sensor.temperature, 'r-')
-            #fig.rax.clear()
             fig.rax.plot(self.sensor.timestamp, self.sensor.humidity, 'b-')
-            if not fig.useAuto:
-                past = datetime.datetime.now() - datetime.timedelta(days = fig.deltaDays)
-                fig.x_min = past
-                fig.x_max = datetime.datetime.now()
-                if fig.x_min > self.sensor.timestamp.min():
-                    xi_min = np.where(self.sensor.timestamp >= fig.x_min)[0][0]
-                    xi_max = np.where(self.sensor.timestamp <= fig.x_max)[0][-1]
-                    tem_temp = self.sensor.temperature[xi_min:xi_max]
-                    tem_hum = self.sensor.humidity[xi_min:xi_max]
-                else:
-                    tem_temp = self.sensor.temperature
-                    tem_hum = self.sensor.humidity
-                fig.y_min = tem_temp.min()
-                fig.y_max = tem_temp.max()
-                fig.y2_min = tem_hum.min()
-                fig.y2_max = tem_hum.max()
             fig.setup_axes()
             fig.canvas.draw()
-            logger.AppendText('{0}: {1}, {2:4.2f} C, {3:4.2f} % RH\n'.format(self.sensor.id,
-                            self.sensor.timestamp[-1], self.sensor.temperature[-1],
-                            self.sensor.humidity[-1]))                       
+            #logger.AppendText('{0}: {1}, {2:4.2f} C, {3:4.2f} % RH\n'.format(self.sensor.id,
+            #                self.sensor.timestamp[-1], self.sensor.temperature[-1],
+            #                self.sensor.humidity[-1]))                       
                                                                                                 
 app = wx.App(False)
 frame = dataLogWindow(None, 'Data Logger')

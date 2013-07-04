@@ -6,6 +6,7 @@ Arduino temperature and humidity sensor.
 import os
 import sys
 import socket
+import itertools
 
 import time
 import datetime
@@ -21,6 +22,9 @@ if host_name == "Alan-VAIO":
 elif host_name == "NP-ASTATINE":
     data_dir = 'C:\\users\\alan\\desktop'
     comms['arduino'] = 'COM7'
+elif host_name == "np-magnesium":
+    data_dir = 'C:\\users\\hera\\desktop'
+    comms['arduino'] = 'COM28'
 else:
     data_dir = ''
     comms["arduino"] = 'dev\ttylACM0'
@@ -29,9 +33,20 @@ class sensor:
     '''Sensor class for recording timestamp, temperature and humidity.'''
     def __init__(self, sensor_id):
         self.id = sensor_id
-        self.timestamp = np.array([])
+        self.timestamp_s = np.array([])
+        self.timestamp = np.array([], dtype='datetime64')
         self.temperature = np.array([])
         self.humidity = np.array([])
+        self.timestamp_s_temp = np.array([])
+        self.timestamp_temp = np.array([], dtype='datetime64')
+        self.temperature_temp = np.array([])
+        self.humidity_temp = np.array([])
+        self.seconds = 0
+        self.time = 0
+        self.temp = 0
+        self.hum = 0
+        self.max_size = 104857600 / 8 # 100 mB per array / 8 bytes per float entry
+        self.fname = os.path.join(data_dir, self.id +".txt")
     
     # communication protocols: initialisation and maintanance commands #
     def initialise(self):
@@ -120,69 +135,106 @@ class sensor:
         ser.read()
         # load data arrays or create if necessary #
         try:
-            npz_archive = np.load(os.path.join(data_dir, self.id+'.npz'))
-            self.timestamp = npz_archive['t']
-            self.temperature = npz_archive['temp']
-            self.humidity = npz_archive['hum']
-            print 'sensor loaded'
+            with open(self.fname, 'r') as f:
+                print 'sensor found'
         except IOError:
+            self.initialise_datafile()
             print 'sensor initialised'
         return 0
     
     def stop_monitoring(self):
         self.close_comms()
-        np.savez(os.path.join(data_dir, self.id),
-                 t = self.timestamp, temp = self.temperature, hum = self.humidity)
         return 0
     
     def log_data(self):
         # read serial data #
         line = ''
         ser = self.ser
-        if not ser.inWaiting():
-            return 0
+        if not ser.inWaiting(): return 0
         while ser.inWaiting() or not line.endswith('\n'):
             line += ser.read(ser.inWaiting())
             # resync request #
             if '\x07' in line:
                 self.resync_time()
                 line = line.replace('\x07', '')
-            if '\x06' in line:
-                print 'ack?'
+            if '\x06' in line: print 'ack?'
         # parse response #
         lines = line.splitlines()
         #lines = [line.strip('\x01') for line in lines if line != '' and '\x01' in line]
         lines = [line for line in lines if line != '']
         for line in lines:
             t, temp, hum = line.split(',')
-            t = float(t)
-            temp = float(temp)
-            hum = float(hum)
-            t = datetime.datetime.fromtimestamp(t)
-            #print t, temp, hum
-            # append values to arrays
-            self.timestamp = np.append(self.timestamp, t)
-            self.temperature = np.append(self.temperature, temp)
-            self.humidity = np.append(self.humidity, hum)
-        np.savez(os.path.join(data_dir, self.id),
-                 t = self.timestamp, temp = self.temperature, hum = self.humidity)
+            self.seconds = float(t)
+            self.time = datetime.datetime.fromtimestamp(self.seconds)
+            self.temp = float(temp)
+            self.hum = float(hum)
+            # append values to arrays #
+            self.timestamp_s_temp = np.append(self.timestamp_s_temp, self.seconds)
+            self.timestamp_temp = np.append(self.timestamp_temp, self.time)
+            self.temperature_temp = np.append(self.temperature_temp, self.temp)
+            self.humidity_temp = np.append(self.humidity_temp, self.hum)
+        self.save_data()
         return 1
-
-if __name__ == '__main__':
-    import matplotlib.pyplot as plt
     
+    def initialise_datafile(self):
+        self.fname = os.path.join(data_dir, self.id + ".txt")
+        with open(self.fname, 'w') as f:
+            f.write("time (s)\ttimestamp\ttemperature (degC)\thumidity (% RH)\n")
+            #header = "time (s)\ttimestamp\ttemperature (degC)\thumidity (% RH)"
+            #np.savetxt(f, np.array([]), delimiter='\t', header=header)
+        return 0
+    
+    def save_data(self):
+        #latest_data = np.concatenate((self.timestamp.T, self.temperature.T, self.humidity.T), axis=1)
+        with open(self.fname, 'a') as f:
+            np.savetxt(f, np.c_[self.timestamp_s_temp, self.timestamp_temp, self.temperature_temp, self.humidity_temp],
+                       fmt='%.3f\t%s\t%.2f\t%.2f', delimiter='\t')
+        self.timestamp_s_temp = np.array([])
+        self.timestamp_temp = np.array([])
+        self.temperature_temp = np.array([])
+        self.humidity_temp = np.array([])
+        return 0
+    
+    def load_data(self, t_min, t_max):
+        # determine limits #        
+        with open(self.fname, 'r') as f:
+            i = 1   # start at 1 to ignore header
+            temp = np.array([])
+            if t_max <= t_min:
+                i_max = np.inf
+                t_max = np.inf
+            for line in f:
+                if "time" in line: continue
+                t = float(line.split('\t')[0])
+                if t >= t_min and t <= t_max: temp = np.append(temp, i)
+                elif t > t_max: break
+                i += 1
+            i_min = temp[0]; i_max = temp[-1]
+        
+        # determine memory constraints #
+        i_step = 1
+        if i_max - i_min > self.max_size:
+            i_step  = round((i_max - i_min)/self.max_size +0.5)
+                    
+        # get data #
+        with open(self.fname, 'r') as f:
+            data = np.genfromtxt(itertools.islice(f, i_min, i_max+1, i_step),
+                                 delimiter='\t', names=("timestamp_s", "timestamp", "temperature", "humidity"),
+                                 dtype=(None))
+            self.timestamp_s = data['timestamp_s']
+            self.timestamp = np.array([datetime.datetime.fromtimestamp(x) for x in self.timestamp_s])
+            self.temperature = data['temperature']
+            self.humidity = data['humidity']
+        return 0
+
+if __name__ == '__main__':    
     period = 1
     sensor1 = sensor('arduino')
-    print sensor1.id
     sensor1.start_monitoring(period)
 
     t0 = time.time()
-    while time.time() - t0 <= 20:
+    while time.time() - t0 <= 10:
         sensor1.log_data()
-        #time.sleep(30)
+        time.sleep(1)
     sensor1.stop_monitoring()
-
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.plot(sensor1.timestamp, sensor1.temperature)
-    plt.show()
+    print "test complete"
