@@ -132,6 +132,7 @@ class sensor:
     def start_monitoring(self, period):
         self.initialise()
         ser = self.ser
+        ser.write('start\r\n')
         # set arduino timer period #
         ser.write('delay ' + str(period) + '\r\n')
         ser.read()
@@ -145,6 +146,7 @@ class sensor:
         return 0
     
     def stop_monitoring(self):
+        self.ser.write('stop\r\n')
         self.close_comms()
         return 0
     
