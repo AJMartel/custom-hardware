@@ -5,6 +5,7 @@ matplotlib.use('WXAgg')
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 import matplotlib.pyplot as plt
 from matplotlib import rc
+import matplotlib.dates as md
 from class_sensor import *
 import numpy as np
 import time
@@ -294,13 +295,11 @@ class sensorPanel(wx.Panel):
             # update plot #
             fig.ax.clear()
             fig.rax.clear()
-            fig.ax.plot(self.sensor.timestamp, self.sensor.temperature, 'r-')
-            fig.rax.plot(self.sensor.timestamp, self.sensor.humidity, 'b-')
+            timestamp = md.date2num(self.sensor.timestamp)
+            fig.ax.plot(timestamp, self.sensor.temperature, 'r-')
+            fig.rax.plot(timestamp, self.sensor.humidity, 'b-')
             fig.setup_axes()
-            fig.canvas.draw()
-            #logger.AppendText('{0}: {1}, {2:4.2f} C, {3:4.2f} % RH\n'.format(self.sensor.id,
-            #                self.sensor.timestamp[-1], self.sensor.temperature[-1],
-            #                self.sensor.humidity[-1]))                       
+            fig.canvas.draw()                       
                                                                                                 
 app = wx.App(False)
 frame = dataLogWindow(None, 'Data Logger')
