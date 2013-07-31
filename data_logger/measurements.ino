@@ -5,7 +5,7 @@ const int clockPin =  3;
 float temperature, humidity, dewpoint;
 Sensirion tempSensor = Sensirion(dataPin, clockPin);
 
-void measure() {
+void measure_temp() {
   tempSensor.measure(&temperature, &humidity, &dewpoint);
   Serial.print(now());
   Serial.print(",");
