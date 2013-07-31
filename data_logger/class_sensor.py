@@ -25,9 +25,11 @@ elif host_name == "NP-ASTATINE":
 elif host_name == "np-magnesium":
     data_dir = 'C:\\users\\hera\\desktop'
     comms['arduino'] = 'COM28'
-else:
+elif host_name == "raspberrypi":
     data_dir = ''
-    comms["arduino"] = 'dev\ttylACM0'
+    comms["arduino"] = '/dev/ttyACM0'
+else:
+    exit
 
 class sensor:
     '''Sensor class for recording timestamp, temperature and humidity.'''
