@@ -16,14 +16,14 @@ const int motorBrake = 9;
 
 // Pin-to-Bit
 // PORTD
-const int shtrCtrl_bit = 2;//bit(2);
-const int motorPWM_bit = 3;//bit(3);
-const int shtrMode_bit = 4;//bit(4);
-const int endTrig_bit = 6;//bit(6);
-const int extTrig_bit = 7;//bit(7);
+const int shtrCtrl_bit = 2;
+const int motorPWM_bit = 3;
+const int shtrMode_bit = 4;
+const int endTrig_bit = 6;
+const int extTrig_bit = 7;
 // PORTB
-const int motorBrake_bit = 1;//bit(1);
-const int motorDirection_bit = 4;//bit(4);
+const int motorBrake_bit = 1;
+const int motorDirection_bit = 4;
 
 // Declarations
 String inputString = "";

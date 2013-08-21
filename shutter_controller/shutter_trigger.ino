@@ -36,7 +36,10 @@ void trigSeq(){
       analogWrite(motorPWM, 0);
       /* leave the shutter open for the full exposure */
       //delay(t_range/1000);
-      while (t-t0 <= t_range/1000) t = millis();     
+      while (t-t0 <= t_range/1000) {
+        t = millis();
+        if (t-t0 > 2000) break;
+      }
       /* close shutter after exposure is complete */
       analogWrite(motorPWM, 255);
       bitClear(PORTB, motorDirection_bit);
