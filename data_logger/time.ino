@@ -18,7 +18,7 @@ void processSyncMessage() {
   // sync Arduino clock to the time received on the serial port
   if(Serial.find(TIME_HEADER)) {
      sync_time = Serial.parseInt();
-     if( sync_time >= DEFAULT_TIME) setTime(sync_time);
+     if (sync_time >= DEFAULT_TIME) setTime(sync_time);
   }
 }
 
@@ -27,6 +27,11 @@ void checkSyncStatus() {
   if  (timeStatus() != timeSet) {  // timeNotSet or timeNeedsSync
     prev_sync_status = sync_status;
     sync_status = false;
+    
+    /* moved these commands from setup to here */
+    setSyncProvider(requestSync);  //set function to call when sync required
+    setSyncInterval(60*60);
+    
     digitalWrite(13, LOW);
     if (timeStatus() == timeNotSet) {
       while (timeStatus() != timeSet) processSyncMessage();

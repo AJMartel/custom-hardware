@@ -49,7 +49,7 @@ class sensor:
         self.hum = 0
         self.max_size = 104857600 / 8 # 100 mB per array / 8 bytes per float entry
         self.fname = os.path.join(data_dir, self.id +".txt")
-    
+
     # communication protocols: initialisation and maintanance commands #
     def initialise(self):
         '''Open communications with Arduino'''
@@ -60,14 +60,19 @@ class sensor:
         ser.timeout = 1
         # sync time #
         while True:
+            print "here"
             msg = ''
             # get single byte handshaking messages #
             while not ser.inWaiting(): continue
             msg = ser.read()
+            print msg
             # identify initialisation codes #
             if msg == 'A':
                 print 'Python: communcations requested'
                 self.establish_contact()
+                print "here now"
+                ser.write('start\n')
+                print 'here'
             if msg == '\x07':
                 print 'Python: time synchronisation requested'
                 self.sync_time()
@@ -87,14 +92,17 @@ class sensor:
         self.ser.close()
         if not self.ser.isOpen(): return 0
         else: return -1
-    
+
     def establish_contact(self):
         '''Waits for communication request (A) from Arduino and responds (R)'''
+        print "writing R"
         self.ser.write('R')
-        time.sleep(1)
+        print "write done"
+        #time.sleep(1)
         print 'Python: established contact'
-        return 0
-    
+        print "returning"
+        #return 0
+
     def sync_time(self):
         '''Waits for time request from Arduino (bell) and
         responds with headed time'''
@@ -112,9 +120,10 @@ class sensor:
             if '\x06' in msg:
                 print 'Python: synchronisation acknowledged'
                 break
+            else: print msg
         print 'Python: time synchronised'
         return 0
-    
+
     def resync_time(self):
         '''Waits for resynchronising request from Arduino (bell) and
         responds with headed time'''
@@ -127,14 +136,13 @@ class sensor:
         # no confirmation necessary #
         print 'Python: time synchronised'
         return 0
-    
+
     # sensor monitoring and data logging #
     def start_monitoring(self, period):
         self.initialise()
         ser = self.ser
-        ser.write('start\r\n')
         # set arduino timer period #
-        ser.write('delay ' + str(period) + '\r\n')
+        ser.write('delay ' + str(period) + '\n')
         ser.read()
         # load data arrays or create if necessary #
         try:
@@ -144,12 +152,12 @@ class sensor:
             self.initialise_datafile()
             print 'sensor initialised'
         return 0
-    
+
     def stop_monitoring(self):
-        self.ser.write('stop\r\n')
+        self.ser.write('stop\n')
         self.close_comms()
         return 0
-    
+
     def log_data(self):
         # read serial data #
         line = ''
@@ -179,7 +187,7 @@ class sensor:
             self.humidity_temp = np.append(self.humidity_temp, self.hum)
         self.save_data()
         return 1
-    
+
     def initialise_datafile(self):
         self.fname = os.path.join(data_dir, self.id + ".txt")
         with open(self.fname, 'w') as f:
@@ -187,7 +195,7 @@ class sensor:
             #header = "time (s)\ttimestamp\ttemperature (degC)\thumidity (% RH)"
             #np.savetxt(f, np.array([]), delimiter='\t', header=header)
         return 0
-    
+
     def save_data(self):
         #latest_data = np.concatenate((self.timestamp.T, self.temperature.T, self.humidity.T), axis=1)
         with open(self.fname, 'a') as f:
@@ -198,9 +206,9 @@ class sensor:
         self.temperature_temp = np.array([])
         self.humidity_temp = np.array([])
         return 0
-    
+
     def load_data(self, t_min, t_max):
-        # determine limits #        
+        # determine limits #
         with open(self.fname, 'r') as f:
             i = 1   # start at 1 to ignore header
             temp = np.array([])
@@ -214,12 +222,12 @@ class sensor:
                 elif t > t_max: break
                 i += 1
             i_min = temp[0]; i_max = temp[-1]
-        
+
         # determine memory constraints #
         i_step = 1
         if i_max - i_min > self.max_size:
             i_step  = round((i_max - i_min)/self.max_size +0.5)
-                    
+
         # get data #
         with open(self.fname, 'r') as f:
             data = np.genfromtxt(itertools.islice(f, i_min, i_max+1, i_step),
@@ -231,7 +239,7 @@ class sensor:
             self.humidity = data['humidity']
         return 0
 
-if __name__ == '__main__':    
+if __name__ == '__main__':
     period = 1
     sensor1 = sensor('arduino')
     sensor1.start_monitoring(period)
